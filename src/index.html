@@ -8,7 +8,7 @@
   <title>Torrey Pines Computer Science</title>
 
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,900;1,600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat');
 
     h1 {
       font-family: 'Montserrat', sans-serif;
@@ -27,6 +27,11 @@
       font-family: 'Montserrat', sans-serif;
       font-weight: 600;
       font-style: italic;
+    }
+
+    h5 {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 400;
     }
 
     html,
@@ -120,7 +125,7 @@
     let elems = [0,1,2,1,2,3];
     let pts = [{y: 1, t: 0}, {y: 0, t:0}, {y: 1, t: -1}, {y: 0, t:-1}];
 
-    let prev_t, first_t;
+    let first_t, prev_t;
     let spawn_n = 5, spawned=0, lifetime = 10000, pts_lim=30;
 
     let gl, ybuf, tbuf, elembuf, tuniform;
@@ -133,20 +138,21 @@
 
     function render(t) {
       if (!first_t) {
-        first_t = t; prev_t = t;
+        first_t = t; prev_t=t;
 
         requestAnimationFrame(render);
         return;
       }
 
-      let dt = t - prev_t;
+      let fps = 1000/(t-prev_t);
       let tnorm = (t-first_t)/lifetime;
       let update = false;
 
       for (let ei=0; ei<elems.length; ei+=3) {
-        if (tnorm>pts[elems[ei]].t+1 && tnorm>pts[elems[ei+1]].t+1 && tnorm>pts[elems[ei+2]].t+1) {
+        if (tnorm>pts[elems[ei]].t+1 && tnorm>pts[elems[ei+1]].t+1 && tnorm>pts[elems[ei+2]].t+1) { //TODO: cache the next expiring triangle
           elems.splice(ei,3);
           ei -= 3;
+          update=true;
         }
       }
 
@@ -175,6 +181,14 @@
         elems.push(pts.length-1, line[line_i+1], line[line_i-1]);
 
         update=true;
+      }
+
+      if (fps>=60) {
+        spawn_n++;
+        spawned += tnorm;
+      } else if (fps<55) {
+        spawn_n--;
+        spawned -= tnorm;
       }
 
       while (tnorm>=minline_t) {
@@ -212,9 +226,7 @@
         }
       }
 
-      if (min!=minline_t) throw "/??";
-
-      // if (update) {
+      if (update) {
         gl.bindBuffer(gl.ARRAY_BUFFER, ybuf);
         gl.bufferData(gl.ARRAY_BUFFER, Float32Array.from(pts.map((pt) => pt.y)), gl.DYNAMIC_DRAW);
 
@@ -223,14 +235,14 @@
 
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, elembuf);
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, Uint32Array.from(elems), gl.DYNAMIC_DRAW);
-      // }
+      }
 
       gl.uniform1f(tuniform, tnorm);
 
       // gl.bindVertexArray(vao);
       gl.drawElements(gl.TRIANGLES, elems.length, gl.UNSIGNED_INT, 0);
       
-      prev_t = t;
+      prev_t=t;
       requestAnimationFrame(render);
     }
 
@@ -345,11 +357,14 @@
     <div class="body" >
       <div id="about" >
         <h2>About</h2>
-        <h3>Dylan Croce</h3>
         <h3>Ethan Kung</h3>
+        <h5>Club President</h5>
+        <h3>Dylan Croce</h3>
+        <h5>Vice President</h5>
         <h3>Thomas Marlowe</h3>
+        <h5>Director of Code</h5>
         <p>
-            I think I've been programming for at least 6 years. I used to be a bit of a hippie, and hopped on the functional programming hype train when I was 12, using F# to make terrible discord bots and eagerly digesting The Little Typer. Now my favorite languages are C, Rust, and C++. While Knuth is still writing fantastically complicated algorithms in MIX, I might as well enjoy the thrill of XOR swapping until writing webapps in C is a serious safety hazard (I did / my dad refused to host it on our home server). I'm also metamorphosing into an amateur math nerd, except I prefer that computers do the heavy lifting. Similarly, I wish I was good at competitive programming, but rarely can I make any headway on nontrivial problems on Codeforces or Project Euler, and the amount of idiotic bugs that eluded my first pass at the above "art" is damning evidence of my inexactitude. Check out my <a href="https://github.com/canislupaster" >github</a> to see a few of my five-year-old projects, but please don't.
+            As director, I'll help you write and think about code. I think I've been programming for at least 6 years. I used to be a bit of a hippie, and hopped on the functional programming hype train when I was 12, using F# to make terrible discord bots and eagerly digesting The Little Typer. Now my favorite languages are C, Rust, and C++. While Knuth is still writing fantastically complicated algorithms in MIX, I might as well enjoy the thrill of XOR swapping until writing webapps in C is a serious safety hazard (I did / my dad refused to host it anywhere in our house). I'm also metamorphosing into an amateur math nerd, except I prefer that computers do the heavy lifting. Similarly, I wish I was good at competitive programming, but rarely can I make any headway on nontrivial problems on Codeforces or Project Euler, and the amount of idiotic bugs that eluded my first pass at the above "art" is damning evidence of my inexactitude. Check out my <a href="https://github.com/canislupaster" >github</a> to see a few of my five-year-old projects, but please don't.
         </p>
       </div>
       <div id="work" >

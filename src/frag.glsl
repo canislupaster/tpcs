@@ -35,5 +35,5 @@ float noise (in vec2 st) {
 }
 
 void main() {
-  gl_FragColor = vec4(hsv2rgb(vec3(mix(0.86,0.98, noise(vec2(fdata.w,cos(fdata.y+fdata.x)))), fdata.w, noise(vec2(fdata.y,fdata.w)))), 1.0);
+  gl_FragColor = vec4(hsv2rgb(vec3(mix(0.86,0.98, 1.0-noise(vec2(0.12+fdata.w,0.74+cos(fdata.y+fdata.x)))), 1.0-fdata.w*fdata.w, 1.0-noise(vec2(fdata.y,fdata.w)))), 1.0);
 }
