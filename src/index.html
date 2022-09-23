@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Torrey Pines Computer Science</title>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,900;1,600&display=swap');
+
+    h1 {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 900;
+      font-size: 7em;
+      text-shadow: 0 0 0.2em black;
+    }
+
+    h2 {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 900;
+    }
+
+    h3 {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 600;
+      font-style: italic;
+    }
+
+    html,
+    body {
+      height: 100vh;
+    }
+
+    body {
+      background: rgb(13, 13, 13);
+      color: rgb(250, 255, 246);
+    }
+
+    a {
+      color: rgb(241, 243, 255);
+    }
+
+    .front a {
+      color: white;
+      text-shadow: 0 0 1em black;
+    }
+
+    .front {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-around;
+      flex-wrap: wrap;
+      align-items: center;
+      min-height: 50vh;
+    }
+
+    .left {
+      transform: skew(-5deg, -3deg);
+      line-height: 0.1em;
+    }
+
+    .right {
+      display: flex;
+      flex-direction: column;
+      font-size: 1.5em;
+      transform: skew(5deg, 3deg);
+    }
+
+    canvas {
+      width: 100vw;
+      height: 50vh;
+      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: -9999;
+    }
+
+
+    .body {
+      max-width: 480px;
+      background-color: rgb(10, 0, 25);
+      border-radius: 10px;
+    }
+
+    @media (min-width: 1024px) {
+      .body {
+        max-width: 1280px;
+        padding: 0 20px;
+        margin: 20px 50px;
+      }
+    }
+
+    @media (min-width: 1600px) {
+      .body {
+        max-width: 1920px;
+      }
+    }
+    
+    .sections {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+  </style>
+
+  <script type="module">
+    import frag from "./frag.glsl";
+    import vert from "./vert.glsl";
+
+
+    let elems = [0,1,2,1,2,3];
+    let pts = [{y: 1, t: 0}, {y: 0, t:0}, {y: 1, t: -1}, {y: 0, t:-1}];
+
+    let prev_t, first_t;
+    let spawn_n = 5, spawned=0, lifetime = 10000, pts_lim=30;
+
+    let gl, ybuf, tbuf, elembuf, tuniform;
+
+    let minline_t = 0;
+    let line = [0,1];
+    let tnorm = 0;
+
+    let canvas_w = 1080;
+
+    function render(t) {
+      if (!first_t) {
+        first_t = t; prev_t = t;
+
+        requestAnimationFrame(render);
+        return;
+      }
+
+      let dt = t - prev_t;
+      let tnorm = (t-first_t)/lifetime;
+      let update = false;
+
+      for (let ei=0; ei<elems.length; ei+=3) {
+        if (tnorm>pts[elems[ei]].t+1 && tnorm>pts[elems[ei+1]].t+1 && tnorm>pts[elems[ei+2]].t+1) {
+          elems.splice(ei,3);
+          ei -= 3;
+        }
+      }
+
+      while (tnorm > pts[0].t + 1) {
+        if (elems.includes(0) || line.includes(0)) break;        
+
+        pts.shift();
+        for (let i in elems) elems[i]--;
+        for (let i in line) line[i]--;
+
+        update=true;
+      }
+
+      for (; spawned < tnorm * spawn_n && pts.length<pts_lim; spawned++) {
+        let line_i = 1;
+        let insy = Math.random();
+        while (insy==0 || insy==1) insy = Math.random();
+
+        for (; line_i<line.length; line_i++) {
+          if (pts[line[line_i]].y<insy) break;
+        }
+
+        pts.push({t: tnorm, y: insy});
+        line.splice(line_i,0,pts.length-1);
+        if (tnorm<minline_t) minline_t=tnorm; 
+        elems.push(pts.length-1, line[line_i+1], line[line_i-1]);
+
+        update=true;
+      }
+
+      while (tnorm>=minline_t) {
+        let new_minline_t = Infinity;
+        for (let line_i=0; line_i<line.length; line_i++) {
+          if (pts[line[line_i]].t<=minline_t) {
+            if (line_i>0 && line_i<line.length-1) {
+              elems.push(line[line_i-1], line[line_i], line[line_i+1]);
+              line.splice(line_i,1);
+              line_i--;
+            } else if (line_i==0) {
+              pts.push({t: tnorm+1+Math.random(), y: 1});
+              elems.push(pts.length-1, line[line_i], line[line_i+1]);
+              line[line_i] = pts.length-1;
+            } else if (line_i==line.length-1) {
+              pts.push({t: tnorm+1+Math.random(), y: 0});
+              elems.push(pts.length-1, line[line_i], line[line_i-1]);
+              line[line_i] = pts.length-1;
+            }
+          }
+          
+          if (pts[line[line_i]].t<new_minline_t) {
+            new_minline_t = pts[line[line_i]].t;
+          }
+        }
+
+        minline_t = new_minline_t;
+        update=true;
+      }
+
+      let min = pts[line[0]].t;
+      for (let line_i=1; line_i<line.length; line_i++) {
+        if (pts[line[line_i]].t<min) {
+          min = pts[line[line_i]].t;
+        }
+      }
+
+      if (min!=minline_t) throw "/??";
+
+      // if (update) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, ybuf);
+        gl.bufferData(gl.ARRAY_BUFFER, Float32Array.from(pts.map((pt) => pt.y)), gl.DYNAMIC_DRAW);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, tbuf);
+        gl.bufferData(gl.ARRAY_BUFFER, Float32Array.from(pts.map((pt) => pt.t)), gl.DYNAMIC_DRAW);
+
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, elembuf);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, Uint32Array.from(elems), gl.DYNAMIC_DRAW);
+      // }
+
+      gl.uniform1f(tuniform, tnorm);
+
+      // gl.bindVertexArray(vao);
+      gl.drawElements(gl.TRIANGLES, elems.length, gl.UNSIGNED_INT, 0);
+      
+      prev_t = t;
+      requestAnimationFrame(render);
+    }
+
+    //MDN boilerplate...
+    function loadShader(gl, type, source) {
+      const shader = gl.createShader(type);
+
+      gl.shaderSource(shader, source);
+
+      gl.compileShader(shader);
+
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        console.error(`An error occurred compiling the shaders: ${gl.getShaderInfoLog(shader)}`);
+        gl.deleteShader(shader);
+        return null;
+      }
+
+      return shader;
+    }
+
+    function initShaderProgram(gl, vsSource, fsSource) {
+      const vertexShader = loadShader(gl, gl.VERTEX_SHADER, vsSource);
+      const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, fsSource);
+
+      const shaderProgram = gl.createProgram();
+      gl.attachShader(shaderProgram, vertexShader);
+      gl.attachShader(shaderProgram, fragmentShader);
+      gl.linkProgram(shaderProgram);
+
+      if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+        alert(`Unable to initialize the shader program: ${gl.getProgramInfoLog(shaderProgram)}`);
+        return null;
+      }
+
+      return shaderProgram;
+    }
+
+    window.onload = () => {
+      const canvas = document.querySelector("#bg");
+      gl = canvas.getContext("webgl2");
+
+      if (gl === null) return;
+
+      // gl.viewport(0,0,canvas.clientWidth,canvas.clientHeight);
+
+      canvas.onresize = () => {
+        canvas.height = canvas.clientHeight;
+        canvas.width = canvas.clientWidth;
+        gl.viewport(0,0,canvas.clientWidth,canvas.clientHeight);
+      };
+
+      canvas.onresize();
+
+      gl.clearColor(0.0, 0.0, 0.0, 1.0);
+      // Clear the color buffer with specified clear color
+      gl.clear(gl.COLOR_BUFFER_BIT);
+
+      const shaderProgram = initShaderProgram(gl, vert, frag);
+
+      // vao = gl.createVertexArray();
+      // gl.bindVertexArray(vao);
+
+      ybuf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, ybuf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(), gl.DYNAMIC_DRAW);
+
+      let yattrib = gl.getAttribLocation(shaderProgram, "y");
+      gl.bindBuffer(gl.ARRAY_BUFFER, ybuf);
+      gl.vertexAttribPointer(yattrib,1,gl.FLOAT,false,0,0);
+      gl.enableVertexAttribArray(yattrib);
+      
+      tbuf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, tbuf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(), gl.DYNAMIC_DRAW);
+
+      let tattrib = gl.getAttribLocation(shaderProgram, "spawnt");
+      gl.bindBuffer(gl.ARRAY_BUFFER, tbuf);
+      gl.vertexAttribPointer(tattrib,1,gl.FLOAT,false,0,0);
+      gl.enableVertexAttribArray(tattrib);
+
+      elembuf = gl.createBuffer();
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, elembuf);
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(), gl.DYNAMIC_DRAW);
+
+      // Tell WebGL to use our program when drawing
+
+      gl.useProgram(shaderProgram);
+
+      // Set the shader uniforms
+
+      tuniform = gl.getUniformLocation(shaderProgram, "t");
+      
+      requestAnimationFrame(render);
+    };
+  </script>
+</head>
+
+<body>
+  <div class="front">
+    <div class="left">
+      <h1 class="">TPCS</h1>
+      <p>computer science at torrey pines high school</p>
+    </div>
+    <div class="right">
+      <a href="#about">about</a>
+      <a href="#work">projects & events</a>
+      <a href="">google classroom (TBD)</a>
+      <!-- <a href="#" ></a> -->
+    </div>
+
+    <!-- distracting moronic background noise -->
+    <canvas id="bg" ></canvas>
+  </div>
+
+  <div class="sections" >
+    <div class="body" >
+      <div id="about" >
+        <h2>About</h2>
+        <h3>Dylan Croce</h3>
+        <h3>Ethan Kung</h3>
+        <h3>Thomas Marlowe</h3>
+        <p>
+            I think I've been programming for at least 6 years. I used to be a bit of a hippie, and hopped on the functional programming hype train when I was 12, using F# to make terrible discord bots and eagerly digesting The Little Typer. Now my favorite languages are C, Rust, and C++. While Knuth is still writing fantastically complicated algorithms in MIX, I might as well enjoy the thrill of XOR swapping until writing webapps in C is a serious safety hazard (I did / my dad refused to host it on our home server). I'm metamorphosing into a math nerd, except I prefer that computers do the heavy lifting. Likewise, I wish I was good at competitive programming, but rarely can I make any headway on nontrivial problems on Codeforces. The amount of idiotic bugs that eluded my first pass at the above "art" is damning evidence of my inexactitude. Check out my <a href="https://github.com/canislupaster" >github</a> to see a few of my five-year-old projects, but please don't.
+        </p>
+      </div>
+      <div id="work" >
+        <h2>Projects and Events</h2>
+        <p>
+          We'll be participating in this year's <a href="https://2022.spaceappschallenge.org/challenges" >NASA Space Apps Challenge</a> in two teams: TP Gold and Cardinal.
+        </p>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>
