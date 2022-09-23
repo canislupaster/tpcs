@@ -59,6 +59,9 @@
 
     .left {
       transform: skew(-5deg, -3deg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
     .right {
@@ -80,15 +83,16 @@
 
 
     .body {
-      max-width: 480px;
+      max-width: 740px;
       background-color: rgb(10, 0, 25);
       border-radius: 10px;
+      padding: 0 10px;
     }
 
     @media (min-width: 1024px) {
       .body {
-        max-width: 1280px;
         padding: 0 20px;
+        max-width: 1280px;
         margin: 20px 50px;
       }
     }
