@@ -62,6 +62,8 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
     }
 
     .right {
@@ -84,7 +86,7 @@
 
     .body {
       max-width: 740px;
-      background-color: rgb(10, 0, 25);
+      background-color: rgb(20, 22, 21);
       border-radius: 10px;
       padding: 0 10px;
     }
@@ -273,13 +275,11 @@
 
       if (gl === null) return;
 
-      // gl.viewport(0,0,canvas.clientWidth,canvas.clientHeight);
-
-      canvas.onresize = () => {
+      new ResizeObserver(() => {
         canvas.height = canvas.clientHeight;
         canvas.width = canvas.clientWidth;
         gl.viewport(0,0,canvas.clientWidth,canvas.clientHeight);
-      };
+      }).observe(canvas);;
 
       gl.clearColor(0.0, 0.0, 0.0, 1.0);
       // Clear the color buffer with specified clear color
@@ -321,7 +321,6 @@
       tuniform = gl.getUniformLocation(shaderProgram, "t");
       
       requestAnimationFrame(render);
-      canvas.onresize();
     };
   </script>
 </head>
