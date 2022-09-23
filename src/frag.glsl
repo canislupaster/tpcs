@@ -1,5 +1,6 @@
 precision mediump float;
 
+varying mediump vec3 coord;
 varying mediump vec4 fdata;
 
 // https://github.com/hughsk/glsl-hsv2rgb/blob/master/index.glsl
@@ -35,5 +36,5 @@ float noise (in vec2 st) {
 }
 
 void main() {
-  gl_FragColor = vec4(hsv2rgb(vec3(mix(0.86,0.98, 1.0-noise(vec2(0.12+fdata.w,0.74+cos(fdata.y+fdata.x)))), 1.0-fdata.w*fdata.w, 1.0-noise(vec2(fdata.y,fdata.w)))), 1.0);
+  gl_FragColor = vec4(hsv2rgb(vec3(mix(0.86,0.98, pow(coord.x,3.0)+pow(coord.y,3.0)), fdata.w, 1.0-noise(vec2(0.23+fdata.y,0.78+fdata.w)))), 1.0);
 }

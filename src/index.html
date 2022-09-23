@@ -8,7 +8,7 @@
   <title>Torrey Pines Computer Science</title>
 
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Montserrat');
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,900;1,600&display=swap');
 
     h1 {
       font-family: 'Montserrat', sans-serif;
@@ -121,12 +121,11 @@
     import frag from "./frag.glsl";
     import vert from "./vert.glsl";
 
-
     let elems = [0,1,2,1,2,3];
-    let pts = [{y: 1, t: 0}, {y: 0, t:0}, {y: 1, t: -1}, {y: 0, t:-1}];
+    let pts = [{y: 1, t:0, i:0}, {y: 0, t:0, i:1}, {y: 1, t: -1, i:2}, {y: 0, t:-1, i:0}];
 
     let first_t, prev_t;
-    let spawn_n = 5, spawned=0, lifetime = 10000, pts_lim=30;
+    let spawn_n = 0, spawned=0, lifetime = 10000, pts_lim=1000;
 
     let gl, ybuf, tbuf, elembuf, tuniform;
 
@@ -175,9 +174,9 @@
           if (pts[line[line_i]].y<insy) break;
         }
 
-        pts.push({t: tnorm, y: insy});
+        pts.push({t: tnorm+Math.random(), y: insy, i: (pts[line[line_i]].i+1)^(pts[line[line_i-1]].i+1)-1});
         line.splice(line_i,0,pts.length-1);
-        if (tnorm<minline_t) minline_t=tnorm; 
+        if (pts[pts.length-1].t<minline_t) minline_t=pts[pts.length-1].t; 
         elems.push(pts.length-1, line[line_i+1], line[line_i-1]);
 
         update=true;
@@ -200,11 +199,11 @@
               line.splice(line_i,1);
               line_i--;
             } else if (line_i==0) {
-              pts.push({t: tnorm+1+Math.random(), y: 1});
+              pts.push({t: tnorm+1+Math.random(), y: 1, i:(pts[line[line_i+1]].i+1)^(pts[line[line_i]].i+1)-1});
               elems.push(pts.length-1, line[line_i], line[line_i+1]);
               line[line_i] = pts.length-1;
             } else if (line_i==line.length-1) {
-              pts.push({t: tnorm+1+Math.random(), y: 0});
+              pts.push({t: tnorm+1+Math.random(), y: 0, i:(pts[line[line_i]].i+1)^(pts[line[line_i-1]].i+1)-1});
               elems.push(pts.length-1, line[line_i], line[line_i-1]);
               line[line_i] = pts.length-1;
             }
@@ -227,11 +226,11 @@
       }
 
       if (update) {
-        gl.bindBuffer(gl.ARRAY_BUFFER, ybuf);
-        gl.bufferData(gl.ARRAY_BUFFER, Float32Array.from(pts.map((pt) => pt.y)), gl.DYNAMIC_DRAW);
+        // gl.bindBuffer(gl.ARRAY_BUFFER, ybuf);
+        // gl.bufferData(gl.ARRAY_BUFFER, Float32Array.from(pts.map((pt) => pt.y)), gl.DYNAMIC_DRAW);
 
         gl.bindBuffer(gl.ARRAY_BUFFER, tbuf);
-        gl.bufferData(gl.ARRAY_BUFFER, Float32Array.from(pts.map((pt) => pt.t)), gl.DYNAMIC_DRAW);
+        gl.bufferData(gl.ARRAY_BUFFER, Float32Array.from(pts.flatMap((pt) => [pt.y,pt.t,pt.i,0])), gl.DYNAMIC_DRAW);
 
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, elembuf);
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, Uint32Array.from(elems), gl.DYNAMIC_DRAW);
@@ -243,7 +242,7 @@
       gl.drawElements(gl.TRIANGLES, elems.length, gl.UNSIGNED_INT, 0);
       
       prev_t=t;
-      requestAnimationFrame(render);
+      if (window.which_anim == 0) requestAnimationFrame(render);
     }
 
     //MDN boilerplate...
@@ -290,7 +289,7 @@
         canvas.height = canvas.clientHeight;
         canvas.width = canvas.clientWidth;
         gl.viewport(0,0,canvas.clientWidth,canvas.clientHeight);
-      }).observe(canvas);;
+      }).observe(canvas);
 
       gl.clearColor(0.0, 0.0, 0.0, 1.0);
       // Clear the color buffer with specified clear color
@@ -301,22 +300,22 @@
       // vao = gl.createVertexArray();
       // gl.bindVertexArray(vao);
 
-      ybuf = gl.createBuffer();
-      gl.bindBuffer(gl.ARRAY_BUFFER, ybuf);
-      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(), gl.DYNAMIC_DRAW);
+      // ybuf = gl.createBuffer();
+      // gl.bindBuffer(gl.ARRAY_BUFFER, ybuf);
+      // gl.bufferData(gl.ARRAY_BUFFER, null, gl.DYNAMIC_DRAW);
 
-      let yattrib = gl.getAttribLocation(shaderProgram, "y");
-      gl.bindBuffer(gl.ARRAY_BUFFER, ybuf);
-      gl.vertexAttribPointer(yattrib,1,gl.FLOAT,false,0,0);
-      gl.enableVertexAttribArray(yattrib);
+      // let yattrib = gl.getAttribLocation(shaderProgram, "y");
+      // gl.bindBuffer(gl.ARRAY_BUFFER, ybuf);
+      // gl.vertexAttribPointer(yattrib,1,gl.FLOAT,false,0,0);
+      // gl.enableVertexAttribArray(yattrib);
       
       tbuf = gl.createBuffer();
       gl.bindBuffer(gl.ARRAY_BUFFER, tbuf);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(), gl.DYNAMIC_DRAW);
 
-      let tattrib = gl.getAttribLocation(shaderProgram, "spawnt");
+      let tattrib = gl.getAttribLocation(shaderProgram, "data");
       gl.bindBuffer(gl.ARRAY_BUFFER, tbuf);
-      gl.vertexAttribPointer(tattrib,1,gl.FLOAT,false,0,0);
+      gl.vertexAttribPointer(tattrib,4,gl.FLOAT,false,0,0);
       gl.enableVertexAttribArray(tattrib);
 
       elembuf = gl.createBuffer();
@@ -333,6 +332,19 @@
       
       requestAnimationFrame(render);
     };
+
+    window.enableTopAnim = () => {
+      window.which_anim = 0;
+      first_t = null;
+      requestAnimationFrame(render);
+    };
+  </script>
+
+  <script type="module" >
+    import {circleAnim} from "./circles";
+    import {topAnim} from "./topanim";
+
+
   </script>
 </head>
 
