@@ -8,7 +8,7 @@ function topAnim() {
     elems: [0,1,2,1,2,3],
     pts: [{y: 1, t:0, i:0}, {y: 0, t:0, i:1}, {y: 1, t: -1, i:2}, {y: 0, t:-1, i:0}],
   
-    spawn_n: 0, spawned: 0, lifetime: 10000, pts_lim: 1000,
+    spawn_n: 0, spawned: 0, lifetime: 10000, pts_lim: 500,
   
     minline_t: 0,
     line: [0,1],
@@ -17,19 +17,13 @@ function topAnim() {
     enabled: false,
 
     fps: null,
-    first_t: null,
-    prev_t: null,
+    first_t: 0,
+    prev_t: 0,
+    insrand_coeff: 5,
 
-    render: (t) => {
-      if (!this.first_t) {
-        this.first_t = t; this.prev_t=t;
-
-        requestAnimationFrame(render);
-        return;
-      }
-
+    render(t) {
       if (!this.fps) this.fps = 1000/(t-this.prev_t);
-      else this.fps = 0.5*this.fps + 500/(t-this.prev_t)
+      else this.fps = 0.9*this.fps + 100/(t-this.prev_t)
 
       let tnorm = (t-this.first_t)/this.lifetime;
       let update = false;
@@ -61,18 +55,18 @@ function topAnim() {
           if (this.pts[this.line[line_i]].y<insy) break;
         }
 
-        this.pts.push({t: tnorm+Math.random(), y: insy, i: (this.pts[this.line[line_i]].i+1)^(this.pts[this.line[line_i-1]].i+1)-1});
+        this.pts.push({t: tnorm+this.insrand_coeff*Math.random(), y: insy, i: (this.pts[this.line[line_i]].i+1)^(this.pts[this.line[line_i-1]].i+1)-1});
         this.line.splice(line_i,0,this.pts.length-1);
-        if (this.pts[this.pts.length-1].t<minline_t) minline_t=this.pts[this.pts.length-1].t;
+        if (this.pts[this.pts.length-1].t<this.minline_t) this.minline_t=this.pts[this.pts.length-1].t;
         this.elems.push(this.pts.length-1, this.line[line_i+1], this.line[line_i-1]);
 
         update=true;
       }
 
-      if (fps>60) {
+      if (this.fps>60) {
         this.spawn_n++;
         this.spawned += tnorm;
-      } else if (fps<60) {
+      } else if (this.fps<60) {
         this.spawn_n--;
         this.spawned -= tnorm;
       }
@@ -86,11 +80,11 @@ function topAnim() {
               this.line.splice(line_i,1);
               line_i--;
             } else if (line_i==0) {
-              this.pts.push({t: tnorm+1+Math.random(), y: 1, i:(this.pts[this.line[line_i+1]].i+1)^(this.pts[this.line[line_i]].i+1)-1});
+              this.pts.push({t: tnorm+1+this.insrand_coeff*Math.random(), y: 1, i:(this.pts[this.line[line_i+1]].i+1)^(this.pts[this.line[line_i]].i+1)-1});
               this.elems.push(this.pts.length-1, this.line[line_i], this.line[line_i+1]);
               this.line[line_i] = this.pts.length-1;
             } else if (line_i==this.line.length-1) {
-              this.pts.push({t: tnorm+1+Math.random(), y: 0, i:(this.pts[this.line[line_i]].i+1)^(this.pts[this.line[line_i-1]].i+1)-1});
+              this.pts.push({t: tnorm+this.insrand_coeff*Math.random(), y: 0, i:(this.pts[this.line[line_i]].i+1)^(this.pts[this.line[line_i-1]].i+1)-1});
               this.elems.push(this.pts.length-1, this.line[line_i], this.line[line_i-1]);
               this.line[line_i] = this.pts.length-1;
             }
@@ -123,17 +117,17 @@ function topAnim() {
         this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, Uint32Array.from(this.elems), this.gl.DYNAMIC_DRAW);
       }
 
-      this.gl.uniform1f(tuniform, tnorm);
+      this.gl.uniform1f(this.tuniform, tnorm);
 
       // this.gl.bindVertexArray(vao);
       this.gl.drawElements(this.gl.TRIANGLES, this.elems.length, this.gl.UNSIGNED_INT, 0);
 
-      this.prev_t=this.t;
-      if (!this.enabled) requestAnimationFrame(this.render);
+      this.prev_t=t;
+      if (this.enabled) requestAnimationFrame(this.render.bind(this));
     },
 
     //MDN boilerplate...
-    loadShader: (gl, type, source) => {
+    loadShader (gl, type, source) {
       const shader = gl.createShader(type);
 
       gl.shaderSource(shader, source);
@@ -149,7 +143,7 @@ function topAnim() {
       return shader;
     },
 
-    initShaderProgram: (gl, vsSource, fsSource) => {
+    initShaderProgram(gl, vsSource, fsSource) {
       const vertexShader = this.loadShader(gl, gl.VERTEX_SHADER, vsSource);
       const fragmentShader = this.loadShader(gl, gl.FRAGMENT_SHADER, fsSource);
 
@@ -166,18 +160,22 @@ function topAnim() {
       return shaderProgram;
     },
 
-    enable: () => {
-      this.enabled=true;
-      this.first_t = null;
-      requestAnimationFrame(this.render);
+    set_f_t(t) {
+      this.first_t += t-this.prev_t;
+      requestAnimationFrame(this.render.bind(this));
     },
 
-    disable: () => {
+    enable() {
+      this.enabled=true;
+      requestAnimationFrame(this.set_f_t.bind(this));
+    },
+
+    disable() {
       this.enabled=false;
     }
   };
 
-  window.onload = () => {
+  window.addEventListener("load", () => {
     const canvas = document.querySelector("#bg");
     obj.gl = canvas.getContext("webgl2");
 
@@ -216,14 +214,14 @@ function topAnim() {
     obj.gl.vertexAttribPointer(tattrib,4,obj.gl.FLOAT,false,0,0);
     obj.gl.enableVertexAttribArray(tattrib);
 
-    elembuf = obj.gl.createBuffer();
+    obj.elembuf = obj.gl.createBuffer();
     obj.gl.bindBuffer(obj.gl.ELEMENT_ARRAY_BUFFER, obj.elembuf);
     obj.gl.bufferData(obj.gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(), obj.gl.DYNAMIC_DRAW);
 
     obj.gl.useProgram(shaderProgram);
 
     obj.tuniform = obj.gl.getUniformLocation(shaderProgram, "t");
-  };
+  });
 
   return obj;
 }

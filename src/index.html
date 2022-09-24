@@ -14,7 +14,6 @@
       font-family: 'Montserrat', sans-serif;
       font-weight: 900;
       font-size: 7em;
-      text-shadow: 0 0 0.2em rgba(0, 0, 0, 0.611);
       line-height: 0.1em;
     }
 
@@ -60,6 +59,7 @@
       flex-wrap: wrap;
       align-items: center;
       min-height: 50vh;
+      text-shadow: 0 0 1em rgba(0, 0, 0, 0.611);
     }
 
     .left {
@@ -78,7 +78,7 @@
       transform: skew(5deg, 3deg);
     }
 
-    canvas {
+    #bg {
       width: 100vw;
       height: 50vh;
       display: block;
@@ -115,236 +115,41 @@
       align-items: center;
     }
 
+    #circlecontainer {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #circles {
+      max-width: 560px;
+      width: 90%;
+    }
   </style>
-
-  <script type="module">
-    import frag from "./frag.glsl";
-    import vert from "./vert.glsl";
-
-    let elems = [0,1,2,1,2,3];
-    let pts = [{y: 1, t:0, i:0}, {y: 0, t:0, i:1}, {y: 1, t: -1, i:2}, {y: 0, t:-1, i:0}];
-
-    let first_t, prev_t;
-    let spawn_n = 0, spawned=0, lifetime = 10000, pts_lim=1000;
-
-    let gl, ybuf, tbuf, elembuf, tuniform;
-
-    let minline_t = 0;
-    let line = [0,1];
-    let tnorm = 0;
-
-    let canvas_w = 1080;
-
-    function render(t) {
-      if (!first_t) {
-        first_t = t; prev_t=t;
-
-        requestAnimationFrame(render);
-        return;
-      }
-
-      let fps = 1000/(t-prev_t);
-      let tnorm = (t-first_t)/lifetime;
-      let update = false;
-
-      for (let ei=0; ei<elems.length; ei+=3) {
-        if (tnorm>pts[elems[ei]].t+1 && tnorm>pts[elems[ei+1]].t+1 && tnorm>pts[elems[ei+2]].t+1) { //TODO: cache the next expiring triangle
-          elems.splice(ei,3);
-          ei -= 3;
-          update=true;
-        }
-      }
-
-      while (tnorm > pts[0].t + 1) {
-        if (elems.includes(0) || line.includes(0)) break;        
-
-        pts.shift();
-        for (let i in elems) elems[i]--;
-        for (let i in line) line[i]--;
-
-        update=true;
-      }
-
-      for (; spawned < tnorm * spawn_n && pts.length<pts_lim; spawned++) {
-        let line_i = 1;
-        let insy = Math.random();
-        while (insy==0 || insy==1) insy = Math.random();
-
-        for (; line_i<line.length; line_i++) {
-          if (pts[line[line_i]].y<insy) break;
-        }
-
-        pts.push({t: tnorm+Math.random(), y: insy, i: (pts[line[line_i]].i+1)^(pts[line[line_i-1]].i+1)-1});
-        line.splice(line_i,0,pts.length-1);
-        if (pts[pts.length-1].t<minline_t) minline_t=pts[pts.length-1].t; 
-        elems.push(pts.length-1, line[line_i+1], line[line_i-1]);
-
-        update=true;
-      }
-
-      if (fps>=60) {
-        spawn_n++;
-        spawned += tnorm;
-      } else if (fps<55) {
-        spawn_n--;
-        spawned -= tnorm;
-      }
-
-      while (tnorm>=minline_t) {
-        let new_minline_t = Infinity;
-        for (let line_i=0; line_i<line.length; line_i++) {
-          if (pts[line[line_i]].t<=minline_t) {
-            if (line_i>0 && line_i<line.length-1) {
-              elems.push(line[line_i-1], line[line_i], line[line_i+1]);
-              line.splice(line_i,1);
-              line_i--;
-            } else if (line_i==0) {
-              pts.push({t: tnorm+1+Math.random(), y: 1, i:(pts[line[line_i+1]].i+1)^(pts[line[line_i]].i+1)-1});
-              elems.push(pts.length-1, line[line_i], line[line_i+1]);
-              line[line_i] = pts.length-1;
-            } else if (line_i==line.length-1) {
-              pts.push({t: tnorm+1+Math.random(), y: 0, i:(pts[line[line_i]].i+1)^(pts[line[line_i-1]].i+1)-1});
-              elems.push(pts.length-1, line[line_i], line[line_i-1]);
-              line[line_i] = pts.length-1;
-            }
-          }
-          
-          if (pts[line[line_i]].t<new_minline_t) {
-            new_minline_t = pts[line[line_i]].t;
-          }
-        }
-
-        minline_t = new_minline_t;
-        update=true;
-      }
-
-      let min = pts[line[0]].t;
-      for (let line_i=1; line_i<line.length; line_i++) {
-        if (pts[line[line_i]].t<min) {
-          min = pts[line[line_i]].t;
-        }
-      }
-
-      if (update) {
-        // gl.bindBuffer(gl.ARRAY_BUFFER, ybuf);
-        // gl.bufferData(gl.ARRAY_BUFFER, Float32Array.from(pts.map((pt) => pt.y)), gl.DYNAMIC_DRAW);
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, tbuf);
-        gl.bufferData(gl.ARRAY_BUFFER, Float32Array.from(pts.flatMap((pt) => [pt.y,pt.t,pt.i,0])), gl.DYNAMIC_DRAW);
-
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, elembuf);
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, Uint32Array.from(elems), gl.DYNAMIC_DRAW);
-      }
-
-      gl.uniform1f(tuniform, tnorm);
-
-      // gl.bindVertexArray(vao);
-      gl.drawElements(gl.TRIANGLES, elems.length, gl.UNSIGNED_INT, 0);
-      
-      prev_t=t;
-      if (window.which_anim == 0) requestAnimationFrame(render);
-    }
-
-    //MDN boilerplate...
-    function loadShader(gl, type, source) {
-      const shader = gl.createShader(type);
-
-      gl.shaderSource(shader, source);
-
-      gl.compileShader(shader);
-
-      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        console.error(`An error occurred compiling the shaders: ${gl.getShaderInfoLog(shader)}`);
-        gl.deleteShader(shader);
-        return null;
-      }
-
-      return shader;
-    }
-
-    function initShaderProgram(gl, vsSource, fsSource) {
-      const vertexShader = loadShader(gl, gl.VERTEX_SHADER, vsSource);
-      const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, fsSource);
-
-      const shaderProgram = gl.createProgram();
-      gl.attachShader(shaderProgram, vertexShader);
-      gl.attachShader(shaderProgram, fragmentShader);
-      gl.linkProgram(shaderProgram);
-
-      if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-        alert(`Unable to initialize the shader program: ${gl.getProgramInfoLog(shaderProgram)}`);
-        return null;
-      }
-
-      return shaderProgram;
-    }
-
-    window.onload = () => {
-      const canvas = document.querySelector("#bg");
-      gl = canvas.getContext("webgl2");
-
-      if (gl === null) return;
-
-      new ResizeObserver(() => {
-        canvas.height = canvas.clientHeight;
-        canvas.width = canvas.clientWidth;
-        gl.viewport(0,0,canvas.clientWidth,canvas.clientHeight);
-      }).observe(canvas);
-
-      gl.clearColor(0.0, 0.0, 0.0, 1.0);
-      // Clear the color buffer with specified clear color
-      gl.clear(gl.COLOR_BUFFER_BIT);
-
-      const shaderProgram = initShaderProgram(gl, vert, frag);
-
-      // vao = gl.createVertexArray();
-      // gl.bindVertexArray(vao);
-
-      // ybuf = gl.createBuffer();
-      // gl.bindBuffer(gl.ARRAY_BUFFER, ybuf);
-      // gl.bufferData(gl.ARRAY_BUFFER, null, gl.DYNAMIC_DRAW);
-
-      // let yattrib = gl.getAttribLocation(shaderProgram, "y");
-      // gl.bindBuffer(gl.ARRAY_BUFFER, ybuf);
-      // gl.vertexAttribPointer(yattrib,1,gl.FLOAT,false,0,0);
-      // gl.enableVertexAttribArray(yattrib);
-      
-      tbuf = gl.createBuffer();
-      gl.bindBuffer(gl.ARRAY_BUFFER, tbuf);
-      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(), gl.DYNAMIC_DRAW);
-
-      let tattrib = gl.getAttribLocation(shaderProgram, "data");
-      gl.bindBuffer(gl.ARRAY_BUFFER, tbuf);
-      gl.vertexAttribPointer(tattrib,4,gl.FLOAT,false,0,0);
-      gl.enableVertexAttribArray(tattrib);
-
-      elembuf = gl.createBuffer();
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, elembuf);
-      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(), gl.DYNAMIC_DRAW);
-
-      // Tell WebGL to use our program when drawing
-
-      gl.useProgram(shaderProgram);
-
-      // Set the shader uniforms
-
-      tuniform = gl.getUniformLocation(shaderProgram, "t");
-      
-      requestAnimationFrame(render);
-    };
-
-    window.enableTopAnim = () => {
-      window.which_anim = 0;
-      first_t = null;
-      requestAnimationFrame(render);
-    };
-  </script>
 
   <script type="module" >
     import {circleAnim} from "./circles";
     import {topAnim} from "./topanim";
 
+    let top = topAnim();
+    let circ = circleAnim();
 
+    window.addEventListener("load", () => top.enable());
+
+    window.addEventListener("scroll", (ev) => {
+      if (window.scrollY>document.getElementById("bg").getBoundingClientRect().bottom) {
+        if (top.enabled) {
+          top.disable();
+          circ.enable();
+        }
+      } else {
+        if (circ.enabled) {
+          circ.disable();
+          top.enable();
+        }
+      }
+    });
   </script>
 </head>
 
@@ -384,6 +189,9 @@
         <p>
           We'll be participating in this year's <a href="https://2022.spaceappschallenge.org/challenges" >NASA Space Apps Challenge</a> in two teams: TP Gold and Cardinal.
         </p>
+      </div>
+      <div id="circlecontainer" >
+        <canvas id="circles" width="800" height="800" ></canvas>
       </div>
     </div>
   </div>

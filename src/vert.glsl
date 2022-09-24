@@ -20,5 +20,5 @@ void main(void) {
   else if (data.z==2.0) coord=vec3(0,0,1);
   // else coord = vec3(1,1,1);
 
-  fdata = vec4(spawnt,t,y,sin(2000.0*spawnt));
+  fdata = vec4(sin(5.0+1000.0*spawnt),t,y,sin(5.0+0.007*spawnt));
 }
