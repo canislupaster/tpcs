@@ -20,6 +20,7 @@ function topAnim() {
     first_t: 0,
     prev_t: 0,
     insrand_coeff: 5,
+    target_fps: navigator.userAgentData.mobile ? 50 : 60,
 
     render(t) {
       if (!this.fps) this.fps = 1000/(t-this.prev_t);
@@ -58,10 +59,10 @@ function topAnim() {
         update=true;
       }
 
-      if (this.fps>60) {
+      if (this.fps>this.target_fps) {
         this.spawn_n++;
         this.spawned += tnorm;
-      } else if (this.fps<60) {
+      } else if (this.fps<this.target_fps-5) {
         this.spawn_n--;
         this.spawned -= tnorm;
       }

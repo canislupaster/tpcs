@@ -1,4 +1,4 @@
-precision mediump float;
+precision highp float;
 
 attribute vec4 data;
 attribute float y;
@@ -6,7 +6,7 @@ attribute float y;
 uniform float t;
 
 varying mediump vec3 coord;
-varying mediump vec4 fdata;
+varying highp vec4 fdata;
 
 void main(void) {
   float spawnt=data.y;

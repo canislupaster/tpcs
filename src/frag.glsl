@@ -1,7 +1,7 @@
-precision mediump float;
+precision highp float;
 
 varying mediump vec3 coord;
-varying mediump vec4 fdata;
+varying highp vec4 fdata;
 
 // https://github.com/hughsk/glsl-hsv2rgb/blob/master/index.glsl
 vec3 hsv2rgb(vec3 c) {
