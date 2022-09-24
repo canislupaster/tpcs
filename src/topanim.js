@@ -47,13 +47,8 @@ function topAnim() {
       }
 
       for (; this.spawned < tnorm * this.spawn_n && this.pts.length<this.pts_lim; this.spawned++) {
-        let line_i = 1;
-        let insy = Math.random();
-        while (insy==0 || insy==1) insy = Math.random();
-
-        for (; line_i<this.line.length; line_i++) {
-          if (this.pts[this.line[line_i]].y<insy) break;
-        }
+        let line_i = Math.floor(Math.random()*(this.line.length-1))+1;
+        let insy = Math.random()*(this.pts[this.line[line_i-1]].y-this.pts[this.line[line_i]].y) + this.pts[this.line[line_i]].y;
 
         this.pts.push({t: tnorm+this.insrand_coeff*Math.random(), y: insy, i: (this.pts[this.line[line_i]].i+1)^(this.pts[this.line[line_i-1]].i+1)-1});
         this.line.splice(line_i,0,this.pts.length-1);
