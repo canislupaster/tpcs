@@ -69,6 +69,7 @@
       align-items: center;
       justify-content: center;
       flex-wrap: wrap;
+      flex: 0.5 0 300px;
     }
 
     .right {
@@ -76,6 +77,7 @@
       flex-direction: column;
       font-size: 1.5em;
       transform: skew(5deg, 3deg);
+      flex: 0.3 0.1 200px;
     }
 
     #bg {
@@ -135,7 +137,11 @@
     let top = topAnim();
     let circ = circleAnim();
 
-    window.addEventListener("load", () => top.enable());
+    window.addEventListener("load", () => {
+      top.enable();
+      circ.enable();
+      circ.disable();
+    });
 
     window.addEventListener("scroll", (ev) => {
       if (window.scrollY>document.getElementById("bg").getBoundingClientRect().bottom) {
@@ -156,13 +162,12 @@
 <body>
   <div class="front">
     <div class="left">
-      <h1 class="">TPCS</h1>
-      <p>computer science at torrey pines high school</p>
+      <img src="../cslogo.svg" />
     </div>
     <div class="right">
-      <a href="#about">about</a>
       <a href="#work">projects & events</a>
-      <a href="">google classroom (TBD)</a>
+      <a href="#about">members</a>
+      <a href="https://discord.gg/7Mhrr3D5GM">discord</a>
       <!-- <a href="#" ></a> -->
     </div>
 
@@ -172,8 +177,16 @@
 
   <div class="sections" >
     <div class="body" >
+      <div id="work" >
+        <h2>Projects and Events</h2>
+        <p>TBD!
+        </p>
+      </div>
+      <div id="circlecontainer" >
+        <canvas id="circles" width="800" height="800" ></canvas>
+      </div>
       <div id="about" >
-        <h2>About</h2>
+        <h2>Members</h2>
         <h3>Ethan Kung</h3>
         <h5>Club President</h5>
         <h3>Dylan Croce</h3>
@@ -183,15 +196,8 @@
         <p>
             As director, I'll help you write and think about code. I think I've been programming for at least 6 years. I used to be a bit of a hippie, and hopped on the functional programming hype train when I was 12, using F# to make terrible discord bots and eagerly digesting The Little Typer. Now my favorite languages are C, Rust, and C++. While Knuth is still writing fantastically complicated algorithms in MIX, I might as well enjoy the thrill of XOR swapping until writing webapps in C is a serious safety hazard (I did / my dad refused to host it anywhere in our house). I'm also metamorphosing into an amateur math nerd, except I prefer that computers do the heavy lifting. Similarly, I wish I was good at competitive programming, but rarely can I make any headway on nontrivial problems on Codeforces or Project Euler, and the amount of idiotic bugs that eluded my first pass at the above "art" is damning evidence of my inexactitude. Check out my <a href="https://github.com/canislupaster" >github</a> to see a few of my five-year-old projects, but please don't.
         </p>
-      </div>
-      <div id="work" >
-        <h2>Projects and Events</h2>
-        <p>
-          We'll be participating in this year's <a href="https://2022.spaceappschallenge.org/challenges" >NASA Space Apps Challenge</a> in two teams: TP Gold and Cardinal.
-        </p>
-      </div>
-      <div id="circlecontainer" >
-        <canvas id="circles" width="800" height="800" ></canvas>
+        <h3>Rachel</h3>
+        <h5>Director of Code</h5>
       </div>
     </div>
   </div>
