@@ -1,5 +1,10 @@
 {
   "devDependencies": {
-    "@parcel/transformer-glsl": "2.7.0"
+    "@parcel/transformer-glsl": "^2.8.3",
+    "parcel": "^2.8.3"
+  },
+  "scripts": {
+    "start": "npx parcel src/index.html",
+    "build": "npx parcel build src/index.html --public-url \"https://tpcs.dev\" --dist-dir ./docs"
   }
 }
